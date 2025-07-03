@@ -18,6 +18,24 @@ def veritabani_motoru_olustur():
         print(f"❌ Veritabanı motoru oluşturulurken hata: {e}")
         return None
 
+import pandas as pd
+
+def get_dogru_cevaplar(engine, konu_idler):
+    """Verilen konu ID'lerine ait tüm soruların doğru cevaplarını getirir."""
+    sql = """
+        SELECT s.soru_id, s.konu_id, dc.secenek_harfi AS dogru_cevap
+        FROM sorular s
+        JOIN (
+            SELECT dc.soru_id, s.secenek_harfi
+            FROM dogru_cevaplar dc
+            JOIN secenekler s ON dc.dogru_secenek_id = s.secenek_id
+        ) AS dc ON s.soru_id = dc.soru_id
+        WHERE s.konu_id IN :konu_idler;
+    """
+    with engine.connect() as conn:
+        df = pd.read_sql_query(text(sql), conn, params={'konu_idler': tuple(konu_idler)})
+    return df
+
 def yeni_soru_ekle(engine, **kwargs):
     """
     Veritabanına yeni bir soru ve tüm detaylarını (seçenekler, çözümler, önem derecesi vb.)

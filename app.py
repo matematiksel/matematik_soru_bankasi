@@ -4,7 +4,7 @@ from datetime import datetime
 import os
 
 # Kendi yazdığımız araçları import ediyoruz
-from db_utils import veritabani_motoru_olustur
+from db_utils import veritabani_motoru_olustur, get_dogru_cevaplar
 from kagit_olustur import (
     ogrencileri_listele, 
     konulari_listele, 
@@ -12,7 +12,7 @@ from kagit_olustur import (
     latex_calisma_kagidi_olustur,
     latex_cevap_anahtari_olustur
 )
-from optik_okuyucu import read_form
+from optik_okuyucu import read_form, FORM_SECTIONS
 
 st.set_page_config(page_title="Akıllı Soru Bankası", layout="wide")
 
@@ -101,25 +101,93 @@ with tab2:
             scan_results = read_form("temp_uploaded_form.png", debug=False)
 
             if scan_results["status"] == "success":
-                st.success("Form başarıyla okundu!")
-                st.subheader("Okunan Cevaplar")
-
-                # Sonuçları daha okunaklı hale getir
+                st.success("Form başarıyla okundu! Sonuçlar değerlendiriliyor...")
+                
+                # --- DEĞERLENDİRME MANTIĞI ---
                 results_data = scan_results['data']
                 
-                # Öğrenci Numarası ve Kitapçık Türü
-                ogrenci_no_dict = results_data.get("Ogrenci No", {})
-                ogrenci_no_str = "".join([str(ogrenci_no_dict.get(i, '')) for i in range(1, 11)])
-                st.metric(label="Öğrenci Numarası", value=ogrenci_no_str if ogrenci_no_str else "Okunamadı")
+                # Formdaki derslere karşılık gelen konu ID'lerini bul
+                # Bu kısım şimdilik form yapısına göre manuel ayarlanıyor.
+                # İleride form ID'sinden otomatik çekilebilir.
+                konu_map = {
+                    "Turkce": 1, "Matematik": 2, "Fen Bilimleri": 3, 
+                    "Sosyal Bilgiler": 4, "Din Kulturu": 5, "Ingilizce": 6
+                }
+                form_konu_idler = [konu_map[sec['name']] for sec in FORM_SECTIONS if sec['type'] == 'row_based']
+                
+                # Veritabanından doğru cevapları çek
+                dogru_cevaplar_df = get_dogru_cevaplar(db_engine, form_konu_idler)
 
-                # Ders Cevapları
-                for section_name, answers in results_data.items():
-                    if section_name not in ["Ogrenci No", "Kitapcik Turu"]:
-                        with st.expander(f"{section_name} Cevapları"):
-                            # Cevapları 2 sütunlu bir DataFrame'e dönüştür
-                            answer_items = sorted(answers.items())
-                            df = pd.DataFrame(answer_items, columns=["Soru", "Cevap"])
-                            st.dataframe(df, use_container_width=True)
+                st.subheader("Sonuç Karnesi")
+
+                # Öğrenci Numarası ve Kitapçık Türü
+                col1, col2 = st.columns(2)
+                with col1:
+                    ogrenci_no_dict = results_data.get("Ogrenci No", {})
+                    ogrenci_no_str = "".join([str(ogrenci_no_dict.get(i, '')) for i in range(1, 11)])
+                    st.metric(label="Öğrenci Numarası", value=ogrenci_no_str if ogrenci_no_str else "Okunamadı")
+                # with col2:
+                #     kitapcik_dict = results_data.get("Kitapcik Turu", {})
+                #     kitapcik_str = kitapcik_dict.get(1, "Okunamadı")
+                #     st.metric(label="Kitapçık Türü", value=kitapcik_str)
+
+                # Ders bazında sonuçları hesapla ve göster
+                karne_ozeti = []
+                for section_config in FORM_SECTIONS:
+                    section_name = section_config['name']
+                    if section_config['type'] == 'row_based':
+                        ogrenci_cevaplari = results_data.get(section_name, {})
+                        konu_id = konu_map[section_name]
+                        konu_dogru_cevaplari = dogru_cevaplar_df[dogru_cevaplar_df['konu_id'] == konu_id]
+                        
+                        if ogrenci_cevaplari:
+                            dogru_sayisi, yanlis_sayisi, bos_sayisi = 0, 0, 0
+                            detayli_sonuclar = []
+
+                            for soru_no, ogrenci_cevabi in sorted(ogrenci_cevaplari.items()):
+                                # Bu kısım, soru_no'nun veritabanındaki soru_id ile eşleştiğini varsayar.
+                                # Gerçek senaryoda bu eşleşme daha karmaşık olabilir.
+                                dogru_cevap_seri = konu_dogru_cevaplari[konu_dogru_cevaplari['soru_id'] == soru_no]['dogru_cevap']
+                                
+                                sonuc = ""
+                                dogru_cevap = "N/A"
+                                if not dogru_cevap_seri.empty:
+                                    dogru_cevap = dogru_cevap_seri.iloc[0]
+                                    if ogrenci_cevabi == "BOS":
+                                        bos_sayisi += 1
+                                        sonuc = "➖"
+                                    elif ogrenci_cevabi == dogru_cevap:
+                                        dogru_sayisi += 1
+                                        sonuc = "✅"
+                                    else:
+                                        yanlis_sayisi += 1
+                                        sonuc = "❌"
+                                else:
+                                    bos_sayisi += 1 # Eşleşme yoksa boş say
+                                    sonuc = "❓"
+
+                                detayli_sonuclar.append({
+                                    "Soru": soru_no, 
+                                    "Cevabınız": ogrenci_cevabi, 
+                                    "Doğru Cevap": dogru_cevap,
+                                    "Sonuç": sonuc
+                                })
+                            
+                            toplam_soru = dogru_sayisi + yanlis_sayisi + bos_sayisi
+                            basari_yuzdesi = (dogru_sayisi / toplam_soru * 100) if toplam_soru > 0 else 0
+                            karne_ozeti.append({
+                                "Ders": section_name,
+                                "Doğru": dogru_sayisi,
+                                "Yanlış": yanlis_sayisi,
+                                "Boş": bos_sayisi,
+                                "Başarı": f"{basari_yuzdesi:.2f}%"
+                            })
+
+                            with st.expander(f"{section_name} Detaylı Sonuçlar"):
+                                st.dataframe(pd.DataFrame(detayli_sonuclar), use_container_width=True)
+
+                st.subheader("Genel Karne Özeti")
+                st.dataframe(pd.DataFrame(karne_ozeti), use_container_width=True)
             else:
                 st.error(f"Form okunurken bir hata oluştu: {scan_results['message']}")
             
