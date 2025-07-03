@@ -1,0 +1,220 @@
+---SORU---
+soru_kodu: 08-CK-01-005
+konu_id: 1
+zorluk: 1
+yerlesim_tipi: sutun
+meb_kazanim_kodu: M.8.1.1.1
+soru_metni: Aşağıdakilerden hangisi 24 sayısının bir pozitif tam sayı çarpanı (böleni) DEĞİLDİR?
+---SEÇENEKLER---
+A: 4
+B: 6
+C: 9
+D: 12
+---DOĞRU CEVAP---
+C
+---ÇÖZÜMLER---
+kisa: 24, 9'a tam bölünmez.
+orta: 24 sayısının çarpanları 1, 2, 3, 4, 6, 8, 12, 24'tür. 9 bu listede yer almaz.
+uzun: Bir sayının çarpanı, o sayıyı kalansız bölen sayıdır. 24/4=6, 24/6=4, 24/12=2 olduğu için A, B ve D şıkları 24'ün çarpanlarıdır. Ancak 24 sayısı 9'a kalansız bölünemediği için 9, 24'ün bir çarpanı değildir.
+
+---SORU---
+soru_kodu: 08-UI-01-005
+konu_id: 2
+zorluk: 1
+yerlesim_tipi: sutun
+meb_kazanim_kodu: M.8.1.2.1
+soru_metni: 5 
+3
+  ifadesinin değeri kaçtır?
+---SEÇENEKLER---
+A: 15
+B: 25
+C: 125
+D: 53
+---DOĞRU CEVAP---
+C
+---ÇÖZÜMLER---
+kisa: 5×5×5=125.
+orta: 5 
+3
+  ifadesi, 5 sayısının kendisiyle 3 kez çarpılması anlamına gelir. 5×5=25, ve 25×5=125.
+uzun: Üslü ifade, bir sayının kendisi ile tekrarlı çarpımını gösterir. a 
+n
+  ifadesinde a taban, n ise üs (kuvvet) olarak adlandırılır. Bu, a sayısını n defa kendisiyle çarpmak demektir. Bu soruda 5 
+3
+ =5×5×5=125 olarak hesaplanır.
+
+---SORU---
+soru_kodu: 08-KI-01-002
+konu_id: 3
+zorluk: 1
+yerlesim_tipi: sutun
+meb_kazanim_kodu: M.8.1.3.1
+soru_metni: Alanı 49 cm$^2$ olan kare şeklindeki bir fayansın bir kenar uzunluğu kaç cm'dir?
+---SEÇENEKLER---
+A: 6
+B: 7
+C: 8
+D: 49
+---DOĞRU CEVAP---
+B
+---ÇÖZÜMLER---
+kisa:  
+49
+​	
+ =7.
+orta: Karenin alanı, bir kenar uzunluğunun kendisiyle çarpımına eşittir (Alan=a 
+2
+ ). Alanı 49 ise, kenar uzunluğu  
+49
+​	
+ 'dur. Bu da 7'ye eşittir.
+uzun: Bir karenin alanı, kenar uzunluğuna 'a' dersek, a×a=a 
+2
+  formülü ile bulunur. Soruda alan 49 cm$^2$ olarak verilmiştir. Yani a 
+2
+ =49. "Hangi sayının kendisiyle çarpımı 49 eder?" sorusunun cevabı, 49 sayısının kareköküdür.  
+49
+​	
+ =7 olduğu için, karenin bir kenar uzunluğu 7 cm'dir.
+
+---SORU---
+soru_kodu: 08-CK-03-003
+konu_id: 1
+zorluk: 1
+yerlesim_tipi: sutun
+meb_kazanim_kodu: M.8.1.1.3
+soru_metni: Aşağıdaki sayılardan hangisi 10 ile aralarında asaldır?
+---SEÇENEKLER---
+A: 9
+B: 12
+C: 15
+D: 25
+---DOĞRU CEVAP---
+A
+---ÇÖZÜMLER---
+kisa: 10'un bölenleri (1, 2, 5, 10). 9'un bölenleri (1, 3, 9). Ortak bölen sadece 1'dir.
+orta: İki sayının aralarında asal olması için 1'den başka ortak bölenleri olmamalıdır. 10'un asal çarpanları 2 ve 5'tir. Bir sayının 10 ile aralarında asal olması için 2'ye ve 5'e bölünmemesi gerekir. Şıklardan sadece 9 bu kurala uyar.
+uzun: Aralarında asal, iki veya daha fazla sayının 1'den başka ortak pozitif tam sayı böleninin olmaması durumudur. 10 sayısının pozitif bölenleri {1, 2, 5, 10}'dur. Şıkları inceleyelim: A) 9'un bölenleri {1, 3, 9}. Ortak bölen sadece 1. Aralarında asaldır. B) 12'nin bölenleri {1, 2, 3, 4, 6, 12}. Ortak bölen 2 var. Değil. C) 15'in bölenleri {1, 3, 5, 15}. Ortak bölen 5 var. Değil. D) 25'in bölenleri {1, 5, 25}. Ortak bölen 5 var. Değil.
+
+---SORU---
+soru_kodu: 08-UI-01-006
+konu_id: 2
+zorluk: 1
+yerlesim_tipi: sutun
+meb_kazanim_kodu: M.8.1.2.1
+soru_metni: 2 
+−1
+  ifadesinin değeri aşağıdakilerden hangisidir?
+---SEÇENEKLER---
+A: 2
+B: -2
+C: 1/2
+D: -1
+---DOĞRU CEVAP---
+C
+---ÇÖZÜMLER---
+kisa: Negatif üs, sayının çarpımsal tersini almak demektir. 2 
+−1
+ =1/2 
+1
+ =1/2.
+orta: Bir sayının üssü negatif ise, bu ifade tabanın çarpımsal tersinin pozitif üssü alınarak hesaplanır. Yani a 
+−n
+ = 
+a 
+n
+ 
+1
+​	
+ . Bu durumda 2 
+−1
+ = 
+2 
+1
+ 
+1
+​	
+ = 
+2
+1
+​	
+ .
+uzun: Negatif üs kavramı, bir sayının tekrarlı bölünmesi olarak düşünülebilir. Ancak kural olarak a 
+−n
+ = 
+a 
+n
+ 
+1
+​	
+  şeklinde tanımlanır. Bu kuralı a=2 ve n=1 için uyguladığımızda, 2 
+−1
+ = 
+2 
+1
+ 
+1
+​	
+  elde ederiz. Her sayının birinci kuvveti kendisine eşit olduğu için 2 
+1
+ =2'dir. Sonuç olarak ifade  
+2
+1
+​	
+  olur.
+
+---SORU---
+soru_kodu: 08-KI-02-003
+konu_id: 3
+zorluk: 1
+yerlesim_tipi: sutun
+meb_kazanim_kodu: M.8.1.3.2
+soru_metni:  
+15
+​	
+  sayısı hangi iki tam sayı arasındadır?
+---SEÇENEKLER---
+A: 2 ve 3
+B: 3 ve 4
+C: 4 ve 5
+D: 14 ve 16
+---DOĞRU CEVAP---
+B
+---ÇÖZÜMLER---
+kisa: 3 
+2
+ =9 ve 4 
+2
+ =16. 15, 9 ile 16 arasındadır.
+orta: 15'ten küçük en büyük tam kare sayı 9=3 
+2
+ 'dir. 15'ten büyük en küçük tam kare sayı 16=4 
+2
+ 'dir. Bu nedenle  
+15
+​	
+  sayısı,  
+9
+​	
+  ile  
+16
+​	
+  arasındadır, yani 3 ile 4 arasındadır.
+uzun: Bir kareköklü ifadenin hangi iki tam sayı arasında olduğunu bulmak için, kök içindeki sayının hangi iki tam kare sayı arasında olduğunu buluruz. Tam kare sayılar: 1, 4, 9, 16, 25, ... Kök içindeki 15 sayısı, 9 ile 16 arasındadır. Matematiksel olarak 9<15<16 şeklinde yazabiliriz. Bu eşitsizliğin her tarafının karekökünü alırsak:  
+9
+​	
+ < 
+15
+​	
+ < 
+16
+​	
+ . Bu da 3< 
+15
+​	
+ <4 anlamına gelir. Dolayısıyla  
+15
+​	
+  sayısı 3 ve 4 arasındadır.
+
