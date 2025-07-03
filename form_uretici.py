@@ -21,11 +21,11 @@ FORM_SECTIONS = [
 ]
 
 # --- TASARIM AYARLARI ---
-DROPOUT_COLOR = colors.Color(0.9, 0.5, 0.3) # Açık Turuncu
+DROPOUT_COLOR = colors.HexColor('#2A629C') # Profesyonel Mavi
 PRIMARY_COLOR = colors.black
-SHADING_COLOR = colors.Color(1, 0.9, 0.8)   # Çok Açık Turuncu (Zebra için)
+SHADING_COLOR = colors.HexColor('#F0F0F0')   # Açık Gri (Zebra için)
 PAGE_WIDTH, PAGE_HEIGHT = A4
-BUBBLE_RADIUS = 0.16 * cm # Küçültülmüş standart daire boyutu
+BUBBLE_RADIUS = 0.18 * cm # Okunabilirlik için biraz büyütüldü
 
 # --- YARDIMCI ÇİZİM FONKSİYONLARI ---
 def draw_main_fiducials(c, margin=0.5*cm):
@@ -74,7 +74,7 @@ def draw_section(c, section, start_x, start_y):
     c.rect(frame_start_x, start_y - section_height + 0.2*cm, frame_width, section_height, stroke=1, fill=0)
 
     title_center_x = frame_start_x + frame_width / 2
-    c.setFont("Helvetica-Bold", 8)
+    c.setFont("Helvetica-Bold", 9)
     c.setFillColor(DROPOUT_COLOR)
     c.drawCentredString(title_center_x, start_y, name)
 

@@ -1,5 +1,20 @@
 # Proje Günlüğü
 
+## 3 Temmuz 2025
+
+**Strateji Güncellemesi:**
+*   Proje verimliliğini ve hızını en üst düzeye çıkarmak için yeni bir çalışma stratejisi benimsenmiştir.
+*   Etkileşim sayısını azaltmak amacıyla, görevler daha büyük hedefler olarak tanımlanacak.
+*   Gemini, en doğru ve verimli çözüm olduğuna inandığı kararları onay beklemeden alarak otonom bir şekilde ilerleyecektir. Bu, günlük kota limitlerinin en verimli şekilde kullanılmasını sağlayacaktır.
+
+**Yapılanlar:**
+*   Projeye Git versiyon kontrolü ve GitHub entegrasyonu başarıyla eklendi.
+*   Artık tüm kod değişiklikleri GitHub üzerinden takip edilecek ve yedeklenecek. Bu, projenin teknik "seyir defteri" olarak hizmet görecek.
+
+**Sıradaki Adımlar:**
+*   `form_uretici.py` dosyasındaki `AttributeError` hatasını çözmeye devam et.
+
+
 ## 30 Haziran 2025
 
 **Dünkü Durum:**
