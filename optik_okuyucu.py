@@ -1,15 +1,33 @@
 # optik_okuyucu.py
-# YENİ VERSİYON: Otomatik Bölüm Tespiti
+# V2.0: Isaretlenmis cevaplari okuma ve yapilandirilmis veri dondurme
 
 import cv2
 import numpy as np
 import os
 import traceback
+from reportlab.lib.units import cm
+
+# --- FORM YAPILANDIRMASI (form_uretici.py'den kopyalandi) ---
+# Bu yapinin, okunan form ile uyumlu oldugundan emin olunmalidir.
+FORM_SECTIONS = [
+    {"name": "Ogrenci No", "type": "column_based", "rows": 10, "cols": 10},
+    {"name": "Kitapcik Turu", "type": "column_based", "rows": 4, "cols": 1, "labels": ["A", "B", "C", "D"]},
+    {"name": "Turkce", "type": "row_based", "rows": 20, "cols": 4},
+    {"name": "Matematik", "type": "row_based", "rows": 20, "cols": 4},
+    {"name": "Fen Bilimleri", "type": "row_based", "rows": 20, "cols": 4},
+    {"name": "Sosyal Bilgiler", "type": "row_based", "rows": 20, "cols": 4},
+    {"name": "Din Kulturu", "type": "row_based", "rows": 20, "cols": 4},
+    {"name": "Ingilizce", "type": "row_based", "rows": 20, "cols": 4},
+]
+BUBBLE_RADIUS_CM = 0.18
+BUBBLE_Y_SPACING_CM = 0.45
+BUBBLE_X_SPACING_CM = 0.5
 
 # --- AYARLAR VE SABİTLER ---
-TARGET_WIDTH_PX = 700
-FORM_WIDTH = 700
-FORM_HEIGHT = int(29.7 / 21.0 * FORM_WIDTH) # A4 aspect ratio
+TARGET_WIDTH_PX = 800 # Çözünürlük artırıldı
+FORM_WIDTH_PX = TARGET_WIDTH_PX
+FORM_HEIGHT_PX = int(29.7 / 21.0 * FORM_WIDTH_PX) # A4 aspect ratio
+PIXELS_PER_CM = FORM_WIDTH_PX / 21.0 # Yaklaşık cm -> piksel dönüşümü
 
 # --- YARDIMCI FONKSİYONLAR ---
 def reorder_points(points):
@@ -29,12 +47,12 @@ def warp_perspective(img, quad):
     (tl, tr, br, bl) = rect
     dst = np.array([
         [0, 0],
-        [FORM_WIDTH - 1, 0],
-        [FORM_WIDTH - 1, FORM_HEIGHT - 1],
-        [0, FORM_HEIGHT - 1]], dtype="float32")
+        [FORM_WIDTH_PX - 1, 0],
+        [FORM_WIDTH_PX - 1, FORM_HEIGHT_PX - 1],
+        [0, FORM_HEIGHT_PX - 1]], dtype="float32")
     src_points = np.array([tl, tr, br, bl], dtype="float32")
     matrix = cv2.getPerspectiveTransform(src_points, dst)
-    return cv2.warpPerspective(img, matrix, (FORM_WIDTH, FORM_HEIGHT))
+    return cv2.warpPerspective(img, matrix, (FORM_WIDTH_PX, FORM_HEIGHT_PX))
 
 def preprocess_image(img_path):
     """Görüntüyü okur ve standart bir genişliğe yeniden boyutlandırır."""
@@ -44,79 +62,140 @@ def preprocess_image(img_path):
     scale = TARGET_WIDTH_PX / img.shape[1]
     return cv2.resize(img, (TARGET_WIDTH_PX, int(img.shape[0] * scale)))
 
-# YENİ FONKSİYON: BÖLÜM KUTULARINI OTOMATİK BULMA
-def find_section_boxes(img):
-    """
-    Görüntü üzerindeki ana bölüm dikdörtgenlerini (kontur tespiti ile) bulur.
-    """
-    # 1. Gri tonlama ve bulanıklaştırma
+def find_main_contour(img):
+    """Görüntüdeki en büyük dörtgeni (formun kendisi) bulur."""
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-
-    # 2. Eşiklemeden geçirerek kutuları belirginleştirme
-    thresh = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                                   cv2.THRESH_BINARY_INV, 11, 2)
-
-    # 3. Konturları bulma (iç içe olanları da alıyoruz)
-    contours, _ = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-
-    detected_boxes = []
-    img_area = img.shape[0] * img.shape[1]
-
-    for cnt in contours:
-        peri = cv2.arcLength(cnt, True)
-        approx = cv2.approxPolyDP(cnt, 0.02 * peri, True)
-
-        # Eğer kontur 4 köşeye sahip bir dikdörtgen ise
+    edged = cv2.Canny(blurred, 75, 200)
+    
+    contours, _ = cv2.findContours(edged, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours = sorted(contours, key=cv2.contourArea, reverse=True)
+    
+    for c in contours:
+        peri = cv2.arcLength(c, True)
+        approx = cv2.approxPolyDP(c, 0.02 * peri, True)
         if len(approx) == 4:
-            (x, y, w, h) = cv2.boundingRect(approx)
-            area = cv2.contourArea(cnt)
+            return approx.reshape(4, 2)
+    return None
+
+def process_answers(section_img, section_config):
+    """
+    Bir bölüm görüntüsünü alır, içindeki işaretli baloncukları bulur ve cevapları döndürür.
+    """
+    # Görüntüyü işle: gri tonlama ve eşikleme
+    gray = cv2.cvtColor(section_img, cv2.COLOR_BGR2GRAY)
+    # Eşikleme, dolu baloncukları (siyah) beyaz, boş alanları siyah yapar
+    thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
+
+    answers = {}
+    rows = section_config['rows']
+    cols = section_config['cols']
+    labels = section_config.get('labels', [chr(ord('A') + i) for i in range(cols)])
+
+    # Boyutları cm'den piksele çevir
+    bubble_y_spacing_px = BUBBLE_Y_SPACING_CM * PIXELS_PER_CM
+    bubble_x_spacing_px = BUBBLE_X_SPACING_CM * PIXELS_PER_CM
+    bubble_radius_px = BUBBLE_RADIUS_CM * PIXELS_PER_CM
+
+    # Bölüm içindeki göreceli başlangıç noktalarını ayarla
+    start_x_offset = 0.9 * cm * PIXELS_PER_CM
+    start_y_offset = 1.2 * cm * PIXELS_PER_CM
+
+    for r in range(rows):
+        marked_pixels = []
+        for c in range(cols):
+            # Her bir baloncuğun merkez koordinatını hesapla
+            center_x = int(start_x_offset + c * bubble_x_spacing_px)
+            center_y = int(start_y_offset + r * bubble_y_spacing_px)
             
-            # Çok küçük veya çok büyük alanları (tüm sayfa gibi) filtrele
-            if (img_area * 0.01) < area < (img_area * 0.4):
-                # Makul en-boy oranına sahip olanları seç (çok ince veya uzun olmasın)
-                aspect_ratio = float(w) / h
-                if 0.2 < aspect_ratio < 5.0:
-                    detected_boxes.append((x, y, w, h))
+            # Baloncuğun etrafında bir maske oluştur
+            mask = np.zeros(thresh.shape, dtype="uint8")
+            cv2.circle(mask, (center_x, center_y), int(bubble_radius_px), 255, -1)
+            
+            # Maskeyi kullanarak sadece o baloncuğun içindeki pikselleri al
+            mask = cv2.bitwise_and(thresh, thresh, mask=mask)
+            total = cv2.countNonZero(mask)
+            marked_pixels.append(total)
 
-    return detected_boxes
+        # En çok siyah piksel içeren baloncuğu bul
+        if max(marked_pixels) > (np.pi * bubble_radius_px**2 * 0.3): # %30'dan fazla doluysa işaretli say
+            selected_index = np.argmax(marked_pixels)
+            answers[r + 1] = labels[selected_index]
+        else:
+            answers[r + 1] = "BOS"
+            
+    return answers
 
-# GÜNCELLENMİŞ ANA FONKSİYON
-def main():
+
+def read_form(img_path, debug=False):
+    """
+    Ana optik okuma fonksiyonu. Bir resim dosyası yolu alır ve
+    içindeki işaretlenmiş cevapları yapılandırılmış bir sözlük olarak döndürür.
+    """
     try:
-        img_path = "test_form.png"
-        original = preprocess_image(img_path)
+        original_img = preprocess_image(img_path)
         
-        # Şimdilik formun genel çerçevesini sabit kabul ediyoruz.
-        # Bu adım da ileride otomatikleştirilebilir.
-        tl, br = (28, 28), (672, 965)
-        quad = np.array([tl, (br[0], tl[1]), (tl[0], br[1]), br], dtype="float32")
-        processed = warp_perspective(original, quad)
+        main_contour = find_main_contour(original_img)
+        if main_contour is None:
+            raise ValueError("Formun ana hatları tespit edilemedi.")
         
-        print("\n--- BÖLÜM TESPİTİ BAŞLADI ---\n")
+        processed_img = warp_perspective(original_img, main_contour)
         
-        # Yeni fonksiyonumuzu kullanarak bölüm kutularını bulalım
-        section_boxes = find_section_boxes(processed.copy())
+        results = {}
         
-        print(f"Toplam {len(section_boxes)} adet potansiyel bölüm kutusu bulundu.")
+        # --- BÖLÜM KOORDİNATLARINI HESAPLA ---
+        # Ogrenci No ve Kitapçık Türü
+        ogrenci_no_section = FORM_SECTIONS[0]
+        kitapcik_section = FORM_SECTIONS[1]
+        
+        x1_ogrenci = int(2.5*cm * PIXELS_PER_CM - 0.7*cm * PIXELS_PER_CM)
+        y1_ogrenci = int(3*cm * PIXELS_PER_CM - 0.5*cm * PIXELS_PER_CM)
+        h_ogrenci = int((ogrenci_no_section['rows'] + 2.5) * BUBBLE_Y_SPACING_CM * PIXELS_PER_CM)
+        w_ogrenci = int((ogrenci_no_section['cols'] + 1) * BUBBLE_X_SPACING_CM * PIXELS_PER_CM)
+        ogrenci_no_roi = processed_img[y1_ogrenci:y1_ogrenci+h_ogrenci, x1_ogrenci:x1_ogrenci+w_ogrenci]
+        results[ogrenci_no_section['name']] = process_answers(ogrenci_no_roi, ogrenci_no_section)
 
-        # Sonuçları görselleştirelim
-        result_img = processed.copy()
-        for (x, y, w, h) in section_boxes:
-            cv2.rectangle(result_img, (x, y), (x + w, y + h), (0, 255, 0), 3) # Yeşil, kalın çerçeve
+        # Ders Bölümleri
+        ders_sections = FORM_SECTIONS[2:]
+        num_cols = len(ders_sections)
+        col_width_px = (FORM_WIDTH_PX - 3.5*cm * PIXELS_PER_CM) / num_cols
+        start_y_dersler = int((29.7 - 9) * cm * PIXELS_PER_CM)
 
-        cv2.imshow("Otomatik Tespit Edilen Bolumler", result_img)
-        cv2.imwrite("sonuc.png", result_img) # Sonucu dosyaya da kaydedelim
-        print("\nSonucu görmek için açılan resim penceresini kontrol edin.")
-        print("Ayrıca 'sonuc.png' dosyasına da kaydedildi.")
-        print("Çıkmak için herhangi bir tuşa basın veya pencereyi kapatın.")
-        cv2.waitKey(0)
+        for i, section in enumerate(ders_sections):
+            start_x = int(2.5*cm * PIXELS_PER_CM + i * col_width_px)
+            
+            # ROI koordinatlarını form_uretici.py'deki mantığa göre hesapla
+            frame_start_x = int(start_x - 0.7*cm * PIXELS_PER_CM)
+            section_height = int((section['rows'] + 1.5) * BUBBLE_Y_SPACING_CM * PIXELS_PER_CM)
+            frame_y = int(start_y_dersler - section_height + 0.2*cm * PIXELS_PER_CM)
+            frame_width = int(col_width_px + 0.5*cm*PIXELS_PER_CM)
 
+            ders_roi = processed_img[frame_y:frame_y+section_height, frame_start_x:frame_start_x+frame_width]
+            results[section['name']] = process_answers(ders_roi, section)
+            
+            if debug:
+                cv2.rectangle(processed_img, (frame_start_x, frame_y), (frame_start_x + frame_width, frame_y + section_height), (0, 255, 0), 2)
+
+        if debug:
+            cv2.imshow("Islemis Form ve Bolumler", processed_img)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
+
+        return {"status": "success", "data": results}
+
+    except (FileNotFoundError, ValueError) as e:
+        return {"status": "error", "message": str(e)}
     except Exception as e:
-        print(f"Hata oluştu: {str(e)}")
         traceback.print_exc()
-    finally:
-        cv2.destroyAllWindows()
+        return {"status": "error", "message": f"Beklenmedik bir hata oluştu: {e}"}
+
 
 if __name__ == "__main__":
-    main()
+    # Test için
+    test_image_path = "test_form.png" # Bu dosyanın mevcut oldugundan emin olun
+    if not os.path.exists(test_image_path):
+        print(f"UYARI: Test dosyasi '{test_image_path}' bulunamadi. Lutfen bir form resmi olusturun.")
+    else:
+        scan_results = read_form(test_image_path)
+        print("\n--- TARAMA SONUÇLARI ---")
+        print(scan_results)
